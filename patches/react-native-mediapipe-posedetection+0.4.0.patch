@@ -1,0 +1,72 @@
+diff --git a/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/MediapipePosedetectionModule.kt b/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/MediapipePosedetectionModule.kt
+index 09a4e25..01ebc0d 100644
+--- a/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/MediapipePosedetectionModule.kt
++++ b/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/MediapipePosedetectionModule.kt
+@@ -115,10 +115,18 @@ class MediapipePosedetectionModule(reactContext: ReactApplicationContext) :
+         context = reactApplicationContext.applicationContext,
+         poseDetectorListener = PoseDetectorListener(this, 0)
+       )
+-      val bundle = helper.detectImage(loadBitmapFromPath(imagePath))
+-      val resultArgs = convertResultBundleToWritableMap(bundle)
+-
+-      promise.resolve(resultArgs)
++      val bitmap = loadBitmapFromPath(imagePath)
++      try {
++        val bundle = helper.detectImage(bitmap)
++        val resultArgs = convertResultBundleToWritableMap(bundle)
++        promise.resolve(resultArgs)
++      } finally {
++        // Must release native PoseLandmarker — otherwise each frame leaks ~tens of MB (OOM ~frame 30).
++        helper.clearPoseLandmarker()
++        if (!bitmap.isRecycled) {
++          bitmap.recycle()
++        }
++      }
+     } catch (e: Exception) {
+       promise.reject("DETECT_IMAGE_ERROR", "Failed to detect on image: ${e.message}", e)
+     }
+diff --git a/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/posedetection/PoseDetectorHelper.kt b/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/posedetection/PoseDetectorHelper.kt
+index b8b3841..0ec1f04 100644
+--- a/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/posedetection/PoseDetectorHelper.kt
++++ b/node_modules/react-native-mediapipe-posedetection/android/src/main/java/com/mediapipeposedetection/posedetection/PoseDetectorHelper.kt
+@@ -45,18 +45,14 @@ class PoseDetectorHelper(
+ 
+   fun clearPoseLandmarker() {
+     poseDetectorListener = null
+-    // This is a hack. If we call close directly, we crash. There is a theory
+-    // that this is because the object detector is still doing some processing, and that
+-    // it is not safe to close it. So a better solution might be to mark it and then when
+-    // processing is complete, cause it to be closed.
+-    Handler(Looper.getMainLooper())
+-            .postDelayed(
+-                    {
+-                      poseLandmarker?.close()
+-                      poseLandmarker = null
+-                    },
+-                    100
+-            )
++    // LIVE_STREAM historically needed a delayed close; IMAGE one-shots must free
++    // immediately or sequential detectOnImage OOMs around ~30 frames.
++    try {
++      poseLandmarker?.close()
++    } catch (e: Exception) {
++      Log.w(TAG, "poseLandmarker.close failed: ${e.message}")
++    }
++    poseLandmarker = null
+   }
+ 
+   // Initialize the pose landmarker using current settings on the
+diff --git a/node_modules/react-native-mediapipe-posedetection/ios/posedetection/PoseDetectionModule.swift b/node_modules/react-native-mediapipe-posedetection/ios/posedetection/PoseDetectionModule.swift
+index 6c71489..69f6099 100644
+--- a/node_modules/react-native-mediapipe-posedetection/ios/posedetection/PoseDetectionModule.swift
++++ b/node_modules/react-native-mediapipe-posedetection/ios/posedetection/PoseDetectionModule.swift
+@@ -131,6 +131,9 @@ public class PoseDetectionModule: NSObject {
+       helper.liveStreamDelegate = self
+ 
+       let image = try loadImageFromPath(from: imagePath)
++      defer {
++        helper.poseLandmarker = nil
++      }
+       if let result = helper.detect(image: image) {
+         let resultArgs = convertPdResultBundleToDictionary(result)
+         resolve(resultArgs)

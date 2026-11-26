@@ -1,0 +1,91 @@
+{
+  "expo": {
+    "name": "Snatch Coach",
+    "slug": "coach-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "snatchcoach",
+    "plugins": [
+      "expo-router",
+      "expo-dev-client",
+      "./plugins/withAlignCameraX",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permití la cámara para grabar tus snatches y analizar la técnica.",
+          "microphonePermission": "Permití el micrófono para grabar video de snatch (el análisis no usa el audio).",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permití acceso a tus videos para analizar snatches ya grabados.",
+          "cameraPermission": false
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Permití la cámara para pose en vivo (desarrollo).",
+          "enableMicrophonePermission": false
+        }
+      ],
+      [
+        "react-native-mediapipe-posedetection",
+        {
+          "assetsPaths": [
+            "./assets/models/"
+          ]
+        }
+      ],
+      "expo-font",
+      "expo-video",
+      "expo-audio",
+      "expo-asset"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.snatchcoach.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Permití la cámara para grabar tus snatches y analizar la técnica.",
+        "NSMicrophoneUsageDescription": "Permití el micrófono para grabar video de snatch.",
+        "NSPhotoLibraryUsageDescription": "Permití acceso a tus videos para analizar snatches ya grabados."
+      }
+    },
+    "android": {
+      "package": "com.snatchcoach.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F14",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d4601feb-9cfb-4c30-8954-d22e3d84a4bd"
+      }
+    }
+  }
+}
